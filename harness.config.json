@@ -1,0 +1,24 @@
+{
+  "_comment": "Configuração dos hooks em scripts/hooks/. Sem planning_write_prefixes/code_prefixes, não há gate de fase; os controles de segurança gerais continuam ativos.",
+  "phase_state_path": ".harness/change-phase.json",
+  "guide_files": [
+    { "path": "AGENTS.md", "label": "AGENTS.md" }
+  ],
+  "blocked_filenames": [
+    ".env",
+    "service_account.json",
+    "google_credentials.json",
+    "gcloud-service-key.json",
+    "id_rsa",
+    "id_ed25519"
+  ],
+  "blocked_filename_suffixes": [".pem", ".p12", ".keystore", ".jks"],
+  "blocked_bash_patterns": [
+    { "pattern": "\\bgit\\s+push\\b", "reason": "git push requer confirmação explícita do usuário." },
+    { "pattern": "\\bgit\\s+reset\\s+--hard\\b", "reason": "git reset --hard é destrutivo — peça confirmação explícita." },
+    { "pattern": "\\bgit\\s+clean\\s+-[a-z]*f", "reason": "git clean -f é destrutivo — peça confirmação explícita." },
+    { "pattern": "\\bgit\\s+branch\\s+-[A-Z]", "reason": "deleção forçada de branch requer confirmação explícita." },
+    { "pattern": "\\brm\\s+-[a-z]*r[a-z]*f\\b", "reason": "rm -rf é destrutivo — use deleções explícitas ou git rm." },
+    { "pattern": "(>+|tee)\\s+\\.env\\b", "reason": "escrita em .env é bloqueada — credenciais não devem ser commitadas." }
+  ]
+}

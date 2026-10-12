@@ -1,4 +1,4 @@
-/** Utilidades puras de áudio: o OpenRouter aceita WAV, mas não WebM (formato do MediaRecorder). */
+/** Utilidades puras de áudio: a Gemini API aceita WAV, mas não WebM (formato do MediaRecorder). */
 
 export function rms(samples: Float32Array): number {
   let sum = 0;

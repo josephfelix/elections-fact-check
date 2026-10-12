@@ -13,6 +13,7 @@
     "icons": "node scripts/make-icons.mjs"
   },
   "dependencies": {
+    "@google/adk": "^2.2.1",
     "fastify": "^5.2.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -27,7 +28,7 @@
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
     "vite": "^6.0.0",
-    "vitest": "^3.2.7"
+    "vitest": "^5.0.4"
   },
   "engines": {
     "node": ">=22.9.0"

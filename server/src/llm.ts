@@ -22,7 +22,7 @@ export type LlmPart = { type: 'text'; text: string } | { type: 'audio'; data: st
 export interface GenerateOptions {
   system?: string;
   input: string | LlmPart[];
-  /** Habilita busca na web (plugin `web` do OpenRouter). */
+  /** Habilita busca na web no provedor de geração configurado. */
   webSearch?: boolean;
   /** Teto de tokens de saída (inclui raciocínio, nos modelos que o têm). Evita custo descontrolado. */
   maxTokens?: number;

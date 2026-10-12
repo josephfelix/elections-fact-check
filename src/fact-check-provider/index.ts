@@ -16,8 +16,8 @@ export interface FactCheckProvider {
 }
 
 export class BackendWebSearchProvider implements FactCheckProvider {
-  readonly id = 'openrouter-web-search';
-  readonly name = 'Gemini via OpenRouter com busca web (não é o Google AI Mode)';
+  readonly id = 'gemini-grounded-web-search';
+  readonly name = 'Gemini + Grounding with Google Search (não é o Google AI Mode)';
   constructor(private backend: BackendOptions) {}
 
   async check(req: CheckRequest, signal?: AbortSignal): Promise<CheckResult> {

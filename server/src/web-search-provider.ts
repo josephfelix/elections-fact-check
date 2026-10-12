@@ -73,8 +73,8 @@ export function reconcileVerdict(raw: RawVerdict, citations: Citation[]): Pick<C
 }
 
 export class WebSearchProvider implements FactCheckProvider {
-  readonly id = 'openrouter-web-search';
-  readonly name = 'Gemini via OpenRouter com busca web (não é o Google AI Mode)';
+  readonly id = 'web-search';
+  readonly name = 'Gemini com busca web (não é o Google AI Mode)';
   private cache: TtlCache<CheckResult>;
 
   constructor(private gen: TextGenerator, cacheTtlMs: number, private now: () => number = Date.now) {

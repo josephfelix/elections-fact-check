@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { WebSearchProvider, ProviderError, reconcileVerdict } from '../server/src/web-search-provider';
-import { OpenRouterClient, parseChatCompletion } from '../server/src/openrouter';
 import { LlmError } from '../server/src/llm';
 import { audioFormat } from '../server/src/transcriber';
 import { fakeGenerator } from './helpers';
@@ -94,102 +93,6 @@ describe('ManualAiModeProvider', () => {
   });
 });
 
-describe('cliente OpenRouter', () => {
-  const okBody = (text = 'oi', annotations: unknown[] = []) => JSON.stringify({ choices: [{ message: { role: 'assistant', content: text, annotations } }] });
-  const mk = (f: unknown, retries = 0) => new OpenRouterClient({ apiKey: 'SEGREDO', model: 'google/gemini-3.8-flash', timeoutMs: 1000 }, f as typeof fetch, retries, 1);
-
-  it('interpreta a resposta documentada (content + annotations url_citation)', () => {
-    const o = parseChatCompletion(JSON.parse(okBody('Espanha venceu.', [{ type: 'url_citation', url_citation: { url: 'https://uefa.com/x', title: 'uefa.com', start_index: 0, end_index: 5 } }])));
-    expect(o).toEqual({ text: 'Espanha venceu.', citations: [{ url: 'https://uefa.com/x', title: 'uefa.com', startIndex: 0, endIndex: 5 }] });
-  });
-  it('aceita content em partes e ignora anotações desconhecidas', () => {
-    const o = parseChatCompletion({ choices: [{ message: { content: [{ type: 'text', text: 'a' }, { type: 'text', text: 'b' }], annotations: [{ type: 'outra' }, 7] } }] });
-    expect(o).toEqual({ text: 'ab', citations: [] });
-  });
-  it('rejeita respostas vazias/inesperadas e erro embutido em HTTP 200', () => {
-    expect(() => parseChatCompletion({ choices: [{ message: { content: '  ' } }] })).toThrow(LlmError);
-    expect(() => parseChatCompletion({})).toThrow(LlmError);
-    expect(() => parseChatCompletion({ error: { code: 503, message: 'Provider returned error' } })).toThrow(/Provider returned error/);
-  });
-  it('sem chave configurada falha sem chamar a rede', async () => {
-    const f = async () => { throw new Error('não deveria chamar'); };
-    await expect(new OpenRouterClient({ apiKey: '', model: 'm', timeoutMs: 100 }, f as never).generate({ input: 'x' })).rejects.toMatchObject({ kind: 'config' });
-  });
-  it('monta a requisição: chave só no cabeçalho, modelo, system, plugin web e áudio input_audio', async () => {
-    let cap: { url: string; init: RequestInit } | undefined;
-    const f = async (url: string, init: RequestInit) => { cap = { url, init }; return new Response(okBody()); };
-    await new OpenRouterClient({ apiKey: 'SEGREDO', model: 'google/gemini-3.8-flash', timeoutMs: 1000, webEngine: 'native' }, f as never)
-      .generate({ system: 'sys', temperature: 0, webSearch: true, input: [{ type: 'text', text: 'transcreva' }, { type: 'audio', data: 'QUJD', format: 'wav' }] });
-    expect(cap?.url).toBe('https://openrouter.ai/api/v1/chat/completions');
-    expect((cap?.init.headers as Record<string, string>).authorization).toBe('Bearer SEGREDO');
-    expect(String(cap?.init.body)).not.toContain('SEGREDO');
-    expect(JSON.parse(String(cap?.init.body))).toEqual({
-      model: 'google/gemini-3.8-flash', temperature: 0, plugins: [{ id: 'web', engine: 'native' }],
-      messages: [{ role: 'system', content: 'sys' }, { role: 'user', content: [{ type: 'text', text: 'transcreva' }, { type: 'input_audio', input_audio: { data: 'QUJD', format: 'wav' } }] }],
-    });
-  });
-  it('sem busca não envia plugins; motor vazio usa o padrão do OpenRouter', async () => {
-    const bodies: Record<string, unknown>[] = [];
-    const f = async (_u: string, init: RequestInit) => { bodies.push(JSON.parse(String(init.body))); return new Response(okBody()); };
-    const c = new OpenRouterClient({ apiKey: 'k', model: 'm', timeoutMs: 1000 }, f as never);
-    await c.generate({ input: 'x' });
-    await c.generate({ input: 'x', webSearch: true });
-    expect(bodies[0]).not.toHaveProperty('plugins');
-    expect(bodies[1]?.plugins).toEqual([{ id: 'web' }]);
-  });
-  it('limita custo: max_tokens, reasoning mínimo e max_results da busca', async () => {
-    const bodies: Record<string, unknown>[] = [];
-    const f = async (_u: string, init: RequestInit) => { bodies.push(JSON.parse(String(init.body))); return new Response(okBody()); };
-    const c = new OpenRouterClient({ apiKey: 'k', model: 'm', timeoutMs: 1000, webMaxResults: 3, sendReasoning: true }, f as never);
-    await c.generate({ input: 'x', webSearch: true, maxTokens: 2000, reasoning: 'low' });
-    expect(bodies[0]).toMatchObject({ max_tokens: 2000, reasoning: { effort: 'low' }, plugins: [{ id: 'web', max_results: 3 }] });
-    const off = new OpenRouterClient({ apiKey: 'k', model: 'm', timeoutMs: 1000, sendReasoning: false }, f as never);
-    await off.generate({ input: 'x', reasoning: 'minimal' });
-    expect(bodies[1]).not.toHaveProperty('reasoning');
-  });
-  it('se o modelo rejeitar "reasoning" (400), repete sem o parâmetro', async () => {
-    const bodies: Record<string, unknown>[] = [];
-    const f = async (_u: string, init: RequestInit) => {
-      const b = JSON.parse(String(init.body)); bodies.push(b);
-      return 'reasoning' in b ? new Response('{"error":{"message":"Reasoning is mandatory for this model"}}', { status: 400 }) : new Response(okBody('ok'));
-    };
-    const c = new OpenRouterClient({ apiKey: 'k', model: 'm', timeoutMs: 1000, sendReasoning: true }, f as never, 0);
-    expect((await c.generate({ input: 'x', reasoning: 'minimal' })).text).toBe('ok');
-    expect(bodies).toHaveLength(2);
-    expect(bodies[1]).not.toHaveProperty('reasoning');
-  });
-  it('400 sem relação com reasoning continua sendo erro', async () => {
-    const f = async () => new Response('{"error":{"message":"invalid audio"}}', { status: 400 });
-    await expect(new OpenRouterClient({ apiKey: 'k', model: 'm', timeoutMs: 1000, sendReasoning: true }, f as never, 0).generate({ input: 'x', reasoning: 'minimal' })).rejects.toThrow(/invalid audio/);
-  });
-  it('tenta de novo em 503 e se recupera', async () => {
-    let n = 0;
-    const f = async () => (++n < 3 ? new Response('{"error":{"message":"overloaded"}}', { status: 503 }) : new Response(okBody('ok')));
-    expect((await mk(f, 2).generate({ input: 'x' })).text).toBe('ok');
-    expect(n).toBe(3);
-  });
-  it('esgotadas as tentativas, informa status e motivo curto (sem corpo bruto)', async () => {
-    let n = 0;
-    const f = async () => { n++; return new Response(JSON.stringify({ error: { message: 'Provider returned error\n' + 'x'.repeat(500) } }), { status: 503 }); };
-    const err = await mk(f, 2).generate({ input: 'x' }).then(() => new Error('x'), (e: unknown) => e as Error);
-    expect(n).toBe(3);
-    expect(err.message.startsWith('OpenRouter respondeu 503: Provider returned error')).toBe(true);
-    expect(err.message.length).toBeLessThan(220);
-  });
-  it('não repete erros definitivos (401/404)', async () => {
-    let n = 0;
-    const f = async () => { n++; return new Response('{"error":{"message":"No endpoints found for x"}}', { status: 404 }); };
-    const err = await mk(f, 2).generate({ input: 'x' }).then(() => new Error('x'), (e: unknown) => e as Error);
-    expect(n).toBe(1);
-    expect(err.message).toBe('OpenRouter respondeu 404: No endpoints found for x');
-  });
-  it('falha de rede e timeout viram erros tipados', async () => {
-    await expect(mk(async () => { throw new TypeError('fetch failed'); }).generate({ input: 'x' })).rejects.toMatchObject({ kind: 'http' });
-    const slow = (_u: string, init: RequestInit) => new Promise((_r, rej) => init.signal?.addEventListener('abort', () => rej(new DOMException('a', 'AbortError'))));
-    await expect(new OpenRouterClient({ apiKey: 'k', model: 'm', timeoutMs: 20 }, slow as never, 0).generate({ input: 'x' })).rejects.toMatchObject({ kind: 'timeout' });
-  });
-});
-
-describe('formato de áudio para o OpenRouter', () => {
+describe('formato de áudio', () => {
   it.each([['audio/wav', 'wav'], ['audio/x-wav', 'wav'], ['audio/mpeg', 'mp3'], ['audio/ogg;codecs=opus', 'ogg'], ['audio/mp4', 'm4a']])('%s → %s', (mime, fmt) => expect(audioFormat(mime)).toBe(fmt));
 });
