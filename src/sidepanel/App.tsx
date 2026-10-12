@@ -125,13 +125,13 @@ function StartScreen({ send, error }: { send: Send; error?: string }) {
       {error && <div className="banner warn">⚠ {error}</div>}
       <div className={`banner ${health === 'ok' ? 'ok' : 'warn'}`}>
         {health === 'checking' && 'Verificando backend…'}
-        {health === 'ok' && '✓ Backend conectado e OpenRouter configurado.'}
-        {health === 'no-key' && 'Backend conectado, mas a chave do OpenRouter não está configurada no servidor: transcrição e checagem não funcionarão.'}
+        {health === 'ok' && '✓ Backend conectado e Gemini configurado.'}
+        {health === 'no-key' && 'Backend conectado, mas a chave da Gemini API não está configurada no servidor: transcrição e checagem não funcionarão.'}
         {health === 'down' && 'Backend inacessível. Inicie com “npm run server” (veja o README).'}
       </div>
       <p className="privacy">
         🔒 A captura só começa após você clicar em “Iniciar”. O áudio da aba continua tocando normalmente, é enviado em trechos curtos ao seu backend
-        (que o repassa ao OpenRouter/Gemini para transcrição) e <strong>não é armazenado</strong>. Transcrição e afirmações são enviadas ao OpenRouter e ao provedor do modelo (Google), e as consultas de busca a um mecanismo de busca web, para análise.
+        (que o repassa ao Gemini para transcrição) e <strong>não é armazenado</strong>. Transcrição e afirmações são enviadas ao provedor do modelo (Google), e as consultas de busca a um mecanismo de busca web, para análise.
       </p>
       <SettingsForm settings={settings} />
     </div>
@@ -145,7 +145,7 @@ function SettingsForm({ settings }: { settings: Settings }) {
       <summary>Configurações</summary>
       <label>Checagem
         <select value={settings.providerMode} onChange={(e) => set({ providerMode: e.target.value as Settings['providerMode'] })}>
-          <option value="grounded">Automática: Gemini via OpenRouter + busca web (não é o AI Mode)</option>
+          <option value="grounded">Automática: Gemini + Grounding with Google Search (não é o AI Mode)</option>
           <option value="manual">Manual: abrir no Google AI Mode</option>
         </select>
       </label>

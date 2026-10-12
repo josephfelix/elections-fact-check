@@ -46,9 +46,9 @@ describe('backend HTTP', () => {
     expect((await post(mk(new ProviderError('lento', 'timeout')))).statusCode).toBe(504);
     expect((await post(mk(new ProviderError('sem chave', 'config')))).statusCode).toBe(503);
     expect((await post(mk(new ProviderError('ruim', 'parse')))).statusCode).toBe(502);
-    const internal = await post(mk(new Error('stack com OPENROUTER_API_KEY=abc')));
+    const internal = await post(mk(new Error('stack com GOOGLE_API_KEY=abc')));
     expect(internal.statusCode).toBe(500);
-    expect(internal.body).not.toContain('OPENROUTER_API_KEY');
+    expect(internal.body).not.toContain('GOOGLE_API_KEY');
   });
 });
 
@@ -56,9 +56,9 @@ describe('configuração', () => {
   it('aplica padrões seguros (bind local) e lê variáveis', () => {
     const c = loadConfig({});
     expect(c.HOST).toBe('127.0.0.1');
-    expect(c.OPENROUTER_API_KEY).toBe('');
-    expect(c.OPENROUTER_MODEL).toBe('google/gemini-3.5-flash-lite');
-    expect(loadConfig({ PORT: '9000', OPENROUTER_API_KEY: 'k' })).toMatchObject({ PORT: 9000, OPENROUTER_API_KEY: 'k' });
+    expect(c.GOOGLE_API_KEY).toBe('');
+    expect(c.GEMINI_MODEL).toBe('gemini-3.5-flash-lite');
+    expect(loadConfig({ PORT: '9000', GOOGLE_API_KEY: 'k' })).toMatchObject({ PORT: 9000, GOOGLE_API_KEY: 'k' });
   });
 });
 

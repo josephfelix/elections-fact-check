@@ -222,7 +222,7 @@ describe('seletores do painel', () => {
 
 describe('proteção de credenciais', () => {
   const walk = (dir: string): string[] => readdirSync(dir).flatMap((f) => { const p = join(dir, f); return statSync(p).isDirectory() ? walk(p) : [p]; });
-  it('o código da extensão (src/) nunca referencia a chave nem a API do OpenRouter/Google diretamente', () => {
+  it('o código da extensão (src/) nunca referencia chaves nem endpoints de provedores LLM diretamente', () => {
     for (const f of walk('src').filter((p) => /\.(ts|tsx)$/.test(p))) {
       const t = readFileSync(f, 'utf8');
       expect(t, f).not.toMatch(/OPENROUTER_API_KEY|GEMINI_API_KEY|openrouter\.ai\/api|x-goog-api-key|generativelanguage\.googleapis\.com|sk-or-/);
@@ -235,7 +235,7 @@ describe('proteção de credenciais', () => {
     }
   });
   it('.env.example não contém segredo real e .env está no .gitignore', () => {
-    expect(readFileSync('.env.example', 'utf8')).toMatch(/^OPENROUTER_API_KEY=$/m);
+    expect(readFileSync('.env.example', 'utf8')).toMatch(/^GOOGLE_API_KEY=$/m);
     expect(readFileSync('.gitignore', 'utf8')).toMatch(/^\.env$/m);
   });
 });

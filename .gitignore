@@ -1,3 +1,15 @@
 node_modules
 dist
 .env
+
+.claude/
+.github/
+AGENTS.md
+CLAUDE.md
+harness.config.json
+scripts/harness/
+scripts/hooks/
+openspec/
+spdd/
+docs/*
+!docs/google-integration.md
